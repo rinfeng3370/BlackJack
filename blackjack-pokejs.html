@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Black Jack</title>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"
+        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+    <script src="poker.min.js"></script>
+    <style>
+        @media screen and (max-width:900px){
+            img {
+                width:80px;
+            }
+            .swal-modal{
+            width: 200px;
+            position: absolute;
+            right: 0;
+            }
+
+            .pcPoint , .playerPoint {
+                font-size: 1em;
+                text-align: left;
+            }
+            
+        }
+
+        @media screen and (max-width:660px){
+            img {
+                width:60px;
+            }
+            .swal-modal{
+            width: 200px;
+            position: absolute;
+            right: 0;
+            }
+
+            .pcPoint , .playerPoint {
+                font-size: 1em;
+                text-align: left;
+            }
+            
+        }
+
+        body {
+            background-color: cornsilk;
+        }
+
+        table {
+            width: 73vw;
+        }
+
+        .gameTable {
+            width: 75vw;
+            border-radius: 30px;
+            margin-left: 7%;
+            height: 90%;
+            background-color: rgb(102, 133, 65);
+            padding: 25px;
+            padding-top: 0;
+            padding-bottom: 15px;
+            border: 10px solid rgb(156, 38, 38);
+            /* position: relative; */
+            /* box-shadow: 2px 2px 2px rgba(0, 0, 0, 0.3); */
+        }
+
+        .pcPoint , .playerPoint {
+            width: 300px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            color: wheat;
+        }
+
+        img {
+            margin-left: 15px;
+        }
+
+        .btn {
+            margin-top: 15px;
+            
+            display: flex;
+            justify-content: center;
+        }
+
+        button {
+            width: 155px;
+            height: 45px;
+            margin-left: 25px;
+            font-size: 29px;
+            border-radius: 8px;
+            background: rgb(30, 116, 255);
+            cursor: pointer;
+            color: white;
+        }
+
+        button:disabled,
+        button[disabled] {
+            border: 1px solid #999999;
+            background-color: #cccccc;
+            color: #666666;
+        }
+
+        .mask {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            z-index: 999;
+            background: rgba(0, 0, 0, 0.9)
+        }
+
+        .intro {
+            width: 400px;
+            height: 450px;
+            position: relative;
+            background: rgba(255, 255, 255, 0.8);
+            margin: 5% auto;
+            font-weight: bolder;
+            font-size: 20px;
+            padding: 20px;
+            padding-top: 10px;
+        }
+
+        
+
+        .swal-text {
+            background-color: #FEFAE3;
+            padding: 17px;
+            font-size: 23px;
+            border: 1px solid #F0E1A1;
+            display: block;
+            margin: 22px;
+            text-align: center;
+            color: #61534e;
+        }
+
+        h1{
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .start{
+            text-align: center;
+            margin-left: 30%;
+        }
+    </style>
+
+    <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+</head>
+
+<body>
+    <div class="mask">
+        <div class="intro">
+            <h1>Black Jack</h1>
+            
+            <h3>獲勝方式及相關規則</h3>
+            <p>1.取得21點</p>
+            <p>2.過五關:取得五張牌且點數不超過21點</p>
+            <p>3.點數大於電腦且點數不超過21點</p>
+            <p>3.a 如果點數相同，則雙方平手</p>
+            <p>4.玩家點數超過21點(爆牌)即為電腦獲勝</p>
+            <p>5.玩家一開始就拿到Black Jack，<br>
+                但電腦補牌後也拿到Black Jack，則雙方平手</p>
+
+            <button class="start" onclick="start()">開始遊戲</button>
+        </div>
+    </div>
+    <div class="gameTable">
+        <table>
+            <th>
+                <h2 class="pcPoint">電腦</h2>
+            </th>
+            <tr id="pcdeck">
+
+            </tr>
+            <th>
+                <h2 class="playerPoint">玩家 </h2>
+            </th>
+
+            <tr id="playerdeck">
+
+                <!-- <td><h1>1</h1></td> -->
+            </tr>
+
+        </table>
+
+        <div class="btn">
+
+            <button class="deal" onclick="deal()">Hit</button>
+            <button class="stop" onclick="stop()">Stand</button>
+            <button onclick="restart()">NewGame</button>
+        </div>
+
+    </div>
+    <audio id="lose" src="audio/you lose.mp3"></audio>
+    <audio id="win" src="audio/you win.mp3"></audio>
+    <audio id="cheer" src="audio/cheer.mp3"></audio>
+    <audio id="fail" src="audio/fail.mp3"></audio>
+    <audio id="bomb" src="audio/bomb.mp3"></audio>
+
+    <script>
+        function start() {
+            $(".mask").css("display", "none");
+            restart();
+        }
+
+        var count = 0; //記錄發牌數
+        var winner = 0; //0: 不確定 1:電腦贏 2:玩家贏 3:平手
+        var countH = 0; //花色計數
+        //audio
+        var lose = $("#lose")[0];
+        var win = $("#win")[0];
+        var cheer = $("#cheer")[0];
+        var fail = $("#fail")[0];
+        var bomb = $("#bomb")[0];
+
+
+        var card = []
+        var huasei = [];
+
+        var pccard = [];
+        var playercard = []
+
+        //重新開始
+        function restart() {
+            $("img").remove();
+
+            $(".playerPoint , .pcPoint").css("color","wheat");
+
+            $(".deal").prop("disabled", false);
+            $(".stop").prop("disabled", false);
+
+            // $("#pcdeck").css("background-color","");
+            // $("#playerdeck").css("background-color","");
+
+            count = 0;
+            winner = 0;
+            countH = 0;
+
+            card = [];
+            //生成撲克牌
+            for (i = 1; i <= 4; i++) {
+                for (j = 1; j <= 13; j++) {
+                    card.push(j);
+                }
+            }
+
+             huasei = [];
+            //生成花色陣列
+            for (h = 1; h <= 13; h++) {
+                huasei.push("spades");
+                huasei.push("hearts");
+                huasei.push("diamonds");
+                huasei.push("clubs");
+            }
+
+            //為了poker.js 轉換 相關數字為字母
+            for (k = card.length - 1; k >= 0; k--) {
+                if (card[k] == 1) {
+                    card[k] = "A";
+                } else if (card[k] == 11) {
+                    card[k] = "J";
+                } else if (card[k] == 12) {
+                    card[k] = "Q";
+                } else if (card[k] == 13) {
+                    card[k] = "K";
+                }
+            }
+
+            //洗牌
+            //參考 http://www.jstips.co/zh_tw/javascript/shuffle-an-array/
+            for (var p = card.length - 1; p > 0; p--) {
+                var o = Math.floor(Math.random() * (p + 1));
+                temp = card[p];
+                card[p] = card[o];
+                card[o] = temp;
+                temph = huasei[p];
+                huasei[p] = huasei[o];
+                huasei[o] = temph;
+            }
+            
+            console.log(card);
+            console.log(huasei);
+            // console.log(card);
+            pccard.length = 0;
+            playercard.length = 0;
+
+            pccard = [getcard()];
+            playercard = [getcard(), getcard()];
+
+            $("#pcdeck").append(Poker.getCardImage(180, huasei[countH], pccard[0]));
+            countH++;
+
+            $("#playerdeck").append(Poker.getCardImage(180, huasei[countH], playercard[0]));
+            countH++;
+            $("#playerdeck").append(Poker.getCardImage(180, huasei[countH], playercard[1]));
+            countH++;
+            pcPoint();
+            playPoint();
+            if (playPoint() == 21) {
+                $(".deal").attr("disabled", "disabled");
+                $(".stop").attr("disabled", "disabled");
+
+                do {
+                getcard("pc");
+                // pcPoint();
+                    if(pcPoint()== 21 && pccard.length == 2){
+                        winner = 3;
+                        
+                        swal("電腦也拿到Black Jack了!", "雙方平手");
+                    }else{
+                        winner = 2;
+                        cheer.play();
+                        $(".pcPoint").css("color","red");
+                        swal("Black Jack!", "恭喜你!!!");
+                    }
+                } while (pcPoint() < 17)
+                
+            }
+
+        }
+
+        console.log(playercard);
+
+        //玩家取牌 和勝負判定
+        function deal() {
+            getcard("player");
+            if (playPoint() > 21) {
+                winner = 1;
+                $(".deal").attr("disabled", "disabled");
+                $(".stop").attr("disabled", "disabled");
+                bomb.play();
+                lose.play();
+                $(".playerPoint").css("color","red");
+                swal("你的點數爆掉啦!", "You Lose");
+                // setTimeout("alert('點數爆掉了 電腦獲勝');", 1);
+            } else if (playPoint() == 21) {
+                winner = 2;
+                $(".deal").attr("disabled", "disabled");
+                $(".stop").attr("disabled", "disabled");
+                win.play();
+                $(".pcPoint").css("color","red");
+                swal("你拿到21點!", "You Win");
+                // setTimeout("alert('恭喜 21點 您獲勝了');", 1);
+
+            } else if (playercard.length == 5 && playPoint() <= 21) {
+                winner = 2;
+                $(".deal").attr("disabled", "disabled");
+                $(".stop").attr("disabled", "disabled");
+                cheer.play();
+                $(".pcPoint").css("color","red");
+                swal("過五關!!!", "非常恭喜你");
+                // setTimeout("alert('恭喜 過五關 您獲勝了');", 1);
+            }
+        }
+
+        //玩家停止取牌後  電腦開始取牌及相關勝負
+        function stop() {
+            $(".deal").attr("disabled", "disabled");
+            $(".stop").attr("disabled", "disabled");
+            do {
+                getcard("pc");
+                // pcPoint();
+               
+
+                if (pcPoint() > 21) {
+                    winner = 2;
+                    win.play();
+                    $(".pcPoint").css("color","red");
+                    swal("電腦點數爆掉了!", "You Win");
+                    // setTimeout("alert('電腦點數爆掉了 玩家獲勝');", 1);
+
+                } else if (pcPoint() == 21 ) {
+                    winner = 1;
+                    lose.play();
+                    $(".playerPoint").css("color","red");
+                    swal("電腦拿到21點!", "You Lose");
+                    // setTimeout("alert('電腦 21點 玩家輸了');", 1);
+
+                } else if (pccard.length == 5 && pcPoint() <= 21) {
+                    winner = 1;
+                    fail.play();
+                    $(".playerPoint").css("color","red");
+                    swal("電腦 過五關!!!", "你輸了:((");
+                    // setTimeout("alert('電腦 過五關 玩家輸了');", 1);
+
+                }
+
+            } while (pcPoint() < 17)
+
+            if (winner == 0) {
+                if (playPoint() > pcPoint()) {
+                    winner = 2;
+                    win.play();
+                    $(".pcPoint").css("color","red");
+                    swal("玩家點數比電腦大", "You Win");
+                    // setTimeout("alert('玩家點數比電腦大 玩家獲勝');", 1);
+
+                } else if (playPoint() < pcPoint()) {
+                    winner = 1;
+                    lose.play();
+                    $(".playerPoint").css("color","red");
+                    swal("玩家點數比電腦小", "You Lose");
+                    // setTimeout("alert('電腦點數比玩家大 電腦獲勝');", 1);
+
+                } else if (playPoint() == pcPoint()) {
+                    winner = 3;
+                    
+                    // $("#playerdeck").css("background-color", "red");
+                    swal("雙方點數相同", "雙方平手");
+                    // setTimeout("alert('雙方點數平手  電腦獲勝');", 1);
+
+                }
+            }
+        }
+
+        //取牌
+        function getcard(who) {
+            var cards = card[count++];
+            
+            if (who == "player") {
+                var len = playercard.length;
+                playercard[len] = cards;
+                $("#playerdeck").append(Poker.getCardImage(180, huasei[countH], playercard[len]));
+                countH++;
+            }
+            if (who == "pc") {
+                var len = pccard.length;
+                pccard[len] = cards;
+                $("#pcdeck").append(Poker.getCardImage(180, huasei[countH], pccard[len]));
+                countH++;
+            }
+
+            return cards;
+
+        }
+
+        //計算玩家的點數
+        function playPoint() {
+            var sumPlayer = 0;
+            var countplA = 0;
+            playercard.forEach(function (x) {
+
+                if (x == "J" || x == "Q" || x == "K") {
+                    x = 10;
+                }
+                if (x == "A") {
+                    countplA++;
+                }
+                if (x == "A") {
+                    x = 1;
+                }
+
+                sumPlayer = sumPlayer + x;
+
+                if (countplA >= 1 && (sumPlayer + 10) == 21) {
+                    sumPlayer = sumPlayer + 10;
+                }
+
+                $(".playerPoint").html("玩家 " + "點數是 " + sumPlayer);
+
+            })
+            return sumPlayer;
+        }
+
+        //計算電腦點數
+        function pcPoint() {
+            var sumPc = 0;
+            var countpcA = 0;
+            pccard.forEach(function (y) {
+                if (y == "J" || y == "Q" || y == "K") {
+                    y = 10;
+                }
+                if (y == "A") {
+                    countpcA++;
+                }
+                if (y == "A") {
+                    y = 1;
+                }
+
+                sumPc = sumPc + y;
+
+                if (countpcA >= 1 && (sumPc + 10 == 21)) {
+                    sumPc = sumPc + 10;
+                }
+
+                $(".pcPoint").html("電腦 " + "點數是" + sumPc);
+
+            })
+
+            return sumPc;
+
+        }
+    </script>
+
+</body>
+
+</html>
